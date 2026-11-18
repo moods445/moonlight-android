@@ -29,6 +29,8 @@ import com.limelight.nvstream.input.MouseButtonPacket;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
+import com.limelight.quickconfig.PinchZoomHelper;
+import com.limelight.quickconfig.QuickConfigPanel;
 import com.limelight.ui.GameGestures;
 import com.limelight.ui.StreamView;
 import com.limelight.utils.Dialog;
@@ -91,7 +93,8 @@ import java.util.Locale;
 public class Game extends Activity implements SurfaceHolder.Callback,
         OnGenericMotionListener, OnTouchListener, NvConnectionListener, EvdevListener,
         OnSystemUiVisibilityChangeListener, GameGestures, StreamView.InputCallbacks,
-        PerfOverlayListener, UsbDriverService.UsbDriverStateListener, View.OnKeyListener {
+        PerfOverlayListener, UsbDriverService.UsbDriverStateListener, View.OnKeyListener,
+        QuickConfigPanel.Host {
     private int lastButtonState = 0;
 
     // Only 2 touches are supported
@@ -143,6 +146,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float lastAbsTouchDownX, lastAbsTouchDownY;
 
     private boolean isHidingOverlays;
+    private QuickConfigPanel quickConfigPanel;
+    private PinchZoomHelper pinchZoomHelper;
     private TextView notificationOverlayView;
     private int requestedNotificationOverlayVisibility = View.GONE;
     private TextView performanceOverlayView;
@@ -513,6 +518,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualController.show();
         }
 
+        // Create the in-stream quick configuration overlay after the OSC so it sits on top
+        pinchZoomHelper = new PinchZoomHelper(streamView);
+        quickConfigPanel = new QuickConfigPanel(this, (FrameLayout)streamView.getParent(),
+                prefConfig, pinchZoomHelper, this);
+
+        // Keep the stream at full size when the Android IME is shown as an overlay
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+
         if (prefConfig.usbDriver) {
             // Start the USB driver
             bindService(new Intent(this, UsbDriverService.class),
@@ -595,6 +608,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     virtualController.hide();
                 }
 
+                if (quickConfigPanel != null) {
+                    quickConfigPanel.setOverlaysVisible(false);
+                }
+
                 performanceOverlayView.setVisibility(View.GONE);
                 notificationOverlayView.setVisibility(View.GONE);
 
@@ -611,6 +628,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                 if (virtualController != null) {
                     virtualController.show();
+                }
+
+                if (quickConfigPanel != null) {
+                    quickConfigPanel.setOverlaysVisible(true);
                 }
 
                 if (prefConfig.enablePerfOverlay) {
@@ -1056,6 +1077,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             unbindService(usbDriverServiceConnection);
         }
 
+        if (quickConfigPanel != null) {
+            quickConfigPanel.destroy();
+        }
+
         // Destroy the capture provider
         inputCaptureProvider.destroy();
     }
@@ -1331,6 +1356,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return false;
         }
 
+        if (quickConfigPanel != null && quickConfigPanel.handleKeyEvent(event, true)) {
+            return true;
+        }
+
         // Handle a synthetic back button event that some Android OS versions
         // create as a result of a right-click. This event WILL repeat if
         // the right mouse button is held down, so we ignore those.
@@ -1413,6 +1442,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return false;
         }
 
+        if (quickConfigPanel != null && quickConfigPanel.handleKeyEvent(event, false)) {
+            return true;
+        }
+
         // Handle a synthetic back button event that some Android OS versions
         // create as a result of a right-click.
         int eventSource = event.getSource();
@@ -1471,6 +1504,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     private boolean handleKeyMultiple(KeyEvent event) {
+        if (quickConfigPanel != null && quickConfigPanel.handleKeyEvent(event, true)) {
+            return true;
+        }
+
         // We can receive keys from a software keyboard that don't correspond to any existing
         // KEYCODE value. Android will give those to us as an ACTION_MULTIPLE KeyEvent.
         //
@@ -1552,8 +1589,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // For the containing background view, we must subtract the origin
         // of the StreamView to get video-relative coordinates.
         if (view != streamView) {
-            normalizedX -= streamView.getX();
-            normalizedY -= streamView.getY();
+            if (pinchZoomHelper != null) {
+                normalizedX = pinchZoomHelper.mapToLocalX(event.getX(pointerIndex));
+                normalizedY = pinchZoomHelper.mapToLocalY(event.getY(pointerIndex));
+            }
+            else {
+                normalizedX -= streamView.getX();
+                normalizedY -= streamView.getY();
+            }
         }
 
         normalizedX = Math.max(normalizedX, 0.0f);
@@ -1786,6 +1829,23 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Pass through mouse/touch/joystick input if we're not grabbing
         if (!grabbedInput) {
             return false;
+        }
+
+        // A pinch zoom is a local display transform, so it is handled before the
+        // read-only check to remain usable while read-only mode is enabled.
+        if (pinchZoomHelper != null && pinchZoomHelper.handleEvent(event)) {
+            for (TouchContext touchContext : touchContextMap) {
+                if (touchContext != null) {
+                    touchContext.cancelTouch();
+                    touchContext.setPointerCount(0);
+                }
+            }
+            return true;
+        }
+
+        // Read-only mode blocks all local input from being sent to the host
+        if (quickConfigPanel != null && quickConfigPanel.isReadOnly()) {
+            return true;
         }
 
         int eventSource = event.getSource();
@@ -2150,8 +2210,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         else {
             // For the containing background view, we must subtract the origin
             // of the StreamView to get video-relative coordinates.
-            eventX = event.getX(0) - streamView.getX();
-            eventY = event.getY(0) - streamView.getY();
+            if (pinchZoomHelper != null) {
+                eventX = pinchZoomHelper.mapToLocalX(event.getX(0));
+                eventY = pinchZoomHelper.mapToLocalY(event.getY(0));
+            }
+            else {
+                eventX = event.getX(0) - streamView.getX();
+                eventY = event.getY(0) - streamView.getY();
+            }
         }
 
         if (event.getPointerCount() == 1 && event.getActionIndex() == 0 &&
@@ -2695,6 +2761,124 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 return handleKeyMultiple(keyEvent);
             default:
                 return false;
+        }
+    }
+
+    // Button flags reported to the host for the virtual on-screen gamepad
+    private static final int OSC_SUPPORTED_BUTTON_FLAGS =
+            ControllerPacket.A_FLAG | ControllerPacket.B_FLAG |
+            ControllerPacket.X_FLAG | ControllerPacket.Y_FLAG |
+            ControllerPacket.UP_FLAG | ControllerPacket.DOWN_FLAG |
+            ControllerPacket.LEFT_FLAG | ControllerPacket.RIGHT_FLAG |
+            ControllerPacket.LB_FLAG | ControllerPacket.RB_FLAG |
+            ControllerPacket.PLAY_FLAG | ControllerPacket.BACK_FLAG |
+            ControllerPacket.LS_CLK_FLAG | ControllerPacket.RS_CLK_FLAG |
+            ControllerPacket.SPECIAL_BUTTON_FLAG;
+
+    @Override
+    public void setVirtualControllerVisible(boolean visible) {
+        if (visible) {
+            boolean newlyCreated = false;
+            if (virtualController == null) {
+                virtualController = new VirtualController(controllerHandler,
+                        (FrameLayout)streamView.getParent(),
+                        this);
+                virtualController.refreshLayout();
+                newlyCreated = true;
+            }
+
+            virtualController.setInputEnabled(!(quickConfigPanel != null && quickConfigPanel.isReadOnly()));
+            virtualController.show();
+            prefConfig.onscreenController = true;
+
+            if (newlyCreated && conn != null) {
+                // Let the host know that gamepad 1 has appeared
+                conn.sendControllerArrivalEvent((byte)1, (short)1,
+                        MoonBridge.LI_CTYPE_UNKNOWN, OSC_SUPPORTED_BUTTON_FLAGS, (short)0);
+            }
+
+            if (quickConfigPanel != null) {
+                quickConfigPanel.bringToFrontAfterOsc();
+            }
+        }
+        else {
+            if (virtualController != null) {
+                virtualController.setInputEnabled(false);
+
+                // Zero the OSC state so no button or stick stays stuck on the host
+                controllerHandler.reportOscState(0,
+                        (short)0, (short)0, (short)0, (short)0, (byte)0, (byte)0);
+
+                virtualController.hide();
+            }
+            prefConfig.onscreenController = false;
+        }
+    }
+
+    @Override
+    public void setTouchscreenTrackpad(boolean enabled) {
+        prefConfig.touchscreenTrackpad = enabled;
+
+        for (TouchContext touchContext : touchContextMap) {
+            if (touchContext != null) {
+                touchContext.cancelTouch();
+            }
+        }
+
+        for (int i = 0; i < touchContextMap.length; i++) {
+            if (enabled) {
+                touchContextMap[i] = new RelativeTouchContext(conn, i,
+                        REFERENCE_HORIZ_RES, REFERENCE_VERT_RES,
+                        streamView, prefConfig);
+            }
+            else {
+                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView);
+            }
+        }
+    }
+
+    @Override
+    public void setReadOnly(boolean readOnly) {
+        for (TouchContext touchContext : touchContextMap) {
+            if (touchContext != null) {
+                touchContext.cancelTouch();
+                touchContext.setPointerCount(0);
+            }
+        }
+
+        if (virtualController != null) {
+            if (readOnly) {
+                virtualController.setInputEnabled(false);
+                controllerHandler.reportOscState(0,
+                        (short)0, (short)0, (short)0, (short)0, (byte)0, (byte)0);
+            }
+            else {
+                virtualController.setInputEnabled(true);
+            }
+        }
+
+        // We can't release keys that are physically held down, but clearing the modifier
+        // state keeps the host from getting stuck with a modifier still pressed.
+        modifierFlags = 0;
+    }
+
+    @Override
+    public void sendUtf8Text(String text) {
+        if (conn != null && text != null) {
+            conn.sendUtf8Text(text);
+        }
+    }
+
+    @Override
+    public void sendKeyEvent(int keyCode, boolean down) {
+        // Route through the normal key handlers so the event gets the same key translation,
+        // modifier handling and read-only filtering as a physical key press.
+        KeyEvent event = new KeyEvent(down ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP, keyCode);
+        if (down) {
+            handleKeyDown(event);
+        }
+        else {
+            handleKeyUp(event);
         }
     }
 }

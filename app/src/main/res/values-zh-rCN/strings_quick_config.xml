@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 串流中快速配置面板的文案，独立文件以避免与 upstream 翻译冲突。 -->
+<resources>
+    <string name="qc_button_desc">快速设置</string>
+    <string name="qc_title">快速设置</string>
+
+    <string name="qc_virtual_controller">虚拟手柄</string>
+    <string name="qc_virtual_controller_summary">显示屏幕上的虚拟手柄</string>
+
+    <string name="qc_touch_trackpad">触摸屏作为触控板</string>
+    <string name="qc_touch_trackpad_summary">相对移动主机光标，而非直接触摸</string>
+
+    <string name="qc_read_only">只读屏幕</string>
+    <string name="qc_read_only_summary">屏蔽所有发往主机的本地输入</string>
+
+    <string name="qc_zoom_reset">重置缩放</string>
+
+    <string name="qc_phone_input">手机输入键盘</string>
+    <string name="qc_phone_input_summary">关＝主机键盘模式；开＝显示半透明内置键盘，直接发送主机按键（可用于 PIN 解锁）</string>
+
+    <string name="qc_clipboard_sync">剪切板同步</string>
+    <string name="qc_clipboard_sync_summary">把复制的文本输入到主机（仅客户端到主机）</string>
+
+    <string name="qc_macro">宏</string>
+    <string name="qc_macro_unimplemented">宏录制功能尚未实现</string>
+
+    <!-- 左侧固定图标栏 -->
+    <string name="qc_rail_controller_desc">虚拟手柄</string>
+    <string name="qc_rail_controller_on">虚拟手柄：显示</string>
+    <string name="qc_rail_controller_off">虚拟手柄：隐藏</string>
+    <string name="qc_rail_touch_direct">触摸：直接触摸</string>
+    <string name="qc_rail_touch_trackpad">触摸：触控板</string>
+    <string name="qc_rail_keyboard_desc">键盘</string>
+    <string name="qc_rail_keyboard_off">键盘：关闭</string>
+    <string name="qc_rail_keyboard_builtin">键盘：内置键盘</string>
+    <string name="qc_rail_keyboard_android">键盘：安卓输入法</string>
+
+    <string name="qc_android_input">安卓输入法</string>
+    <string name="qc_android_input_summary">调起安卓输入法，把文字输入主机（可用任意输入法，含中文）</string>
+    <string name="qc_android_input_desc">文本转发输入框</string>
+
+    <string name="qc_toast_controller_on">虚拟手柄：显示</string>
+    <string name="qc_toast_controller_off">虚拟手柄：隐藏</string>
+    <string name="qc_toast_touch_direct">触摸模式：直接触摸主机</string>
+    <string name="qc_toast_touch_trackpad">触摸模式：触摸屏作为触控板</string>
+    <string name="qc_toast_keyboard_android">已打开安卓输入法（文字输入）</string>
+    <string name="qc_toast_keyboard_builtin">已显示内置键盘（真实主机按键）</string>
+</resources>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings for the in-stream quick configuration panel. Kept in a separate
+     file so that merge conflicts with upstream translations are avoided. -->
+<resources>
+    <string name="qc_button_desc">Quick settings</string>
+    <string name="qc_title">Quick settings</string>
+
+    <string name="qc_virtual_controller">Virtual gamepad</string>
+    <string name="qc_virtual_controller_summary">Show the on-screen controller</string>
+
+    <string name="qc_touch_trackpad">Touchscreen as trackpad</string>
+    <string name="qc_touch_trackpad_summary">Move the host cursor relatively instead of touching directly</string>
+
+    <string name="qc_read_only">Read-only screen</string>
+    <string name="qc_read_only_summary">Block all local input from reaching the host</string>
+
+    <string name="qc_zoom_reset">Reset zoom</string>
+
+    <string name="qc_phone_input">Phone input keyboard</string>
+    <string name="qc_phone_input_summary">Off: host keyboard mode. On: show a translucent keyboard that sends real host key presses (usable for PIN unlock)</string>
+
+    <string name="qc_clipboard_sync">Clipboard sync</string>
+    <string name="qc_clipboard_sync_summary">Type copied text on the host (client to host only)</string>
+
+    <string name="qc_macro">Macro</string>
+    <string name="qc_macro_unimplemented">Macro recording is not implemented yet</string>
+
+    <!-- Left rail -->
+    <string name="qc_rail_controller_desc">Virtual gamepad</string>
+    <string name="qc_rail_controller_on">Virtual gamepad: shown</string>
+    <string name="qc_rail_controller_off">Virtual gamepad: hidden</string>
+    <string name="qc_rail_touch_direct">Touch: direct</string>
+    <string name="qc_rail_touch_trackpad">Touch: trackpad</string>
+    <string name="qc_rail_keyboard_desc">Keyboard</string>
+    <string name="qc_rail_keyboard_off">Keyboard: off</string>
+    <string name="qc_rail_keyboard_builtin">Keyboard: built-in</string>
+    <string name="qc_rail_keyboard_android">Keyboard: Android IME</string>
+
+    <string name="qc_android_input">Android IME input</string>
+    <string name="qc_android_input_summary">Show the Android keyboard and type text to the host (works with any Android keyboard, including Chinese)</string>
+    <string name="qc_android_input_desc">Text forwarding field</string>
+
+    <string name="qc_toast_controller_on">Virtual gamepad shown</string>
+    <string name="qc_toast_controller_off">Virtual gamepad hidden</string>
+    <string name="qc_toast_touch_direct">Touch screen: direct control</string>
+    <string name="qc_toast_touch_trackpad">Touch screen: trackpad</string>
+    <string name="qc_toast_keyboard_android">Android keyboard on (text input)</string>
+    <string name="qc_toast_keyboard_builtin">Built-in keyboard on (real host key presses)</string>
+</resources>

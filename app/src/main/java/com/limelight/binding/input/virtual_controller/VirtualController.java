@@ -160,7 +160,8 @@ public class VirtualController {
         int buttonSize = (int)(screen.heightPixels*0.06f);
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(buttonSize, buttonSize);
         params.leftMargin = 15;
-        params.topMargin = 15;
+        // Leave room for the quick configuration rail (4 buttons) pinned to the left edge
+        params.topMargin = (int)(10 * screen.density) + 4 * buttonSize + 8;
         frame_layout.addView(buttonConfigure, params);
 
         // Start with the default layout
@@ -179,6 +180,10 @@ public class VirtualController {
     }
 
     private void sendControllerInputContextInternal() {
+        if (!inputEnabled) {
+            return;
+        }
+
         _DBG("INPUT_MAP + " + inputContext.inputMap);
         _DBG("LEFT_TRIGGER " + inputContext.leftTrigger);
         _DBG("RIGHT_TRIGGER " + inputContext.rightTrigger);
@@ -211,5 +216,11 @@ public class VirtualController {
         handler.postDelayed(delayedRetransmitRunnable, 25);
         handler.postDelayed(delayedRetransmitRunnable, 50);
         handler.postDelayed(delayedRetransmitRunnable, 75);
+    }
+
+    private boolean inputEnabled = true;
+
+    public void setInputEnabled(boolean enabled) {
+        this.inputEnabled = enabled;
     }
 }
